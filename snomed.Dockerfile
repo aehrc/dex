@@ -28,7 +28,7 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
 
-ENV GOMPLATE_VERSION=v3.9.0
+ENV GOMPLATE_VERSION=v3.10.0
 
 RUN wget -O /usr/local/bin/gomplate \
     "https://github.com/hairyhenderson/gomplate/releases/download/${GOMPLATE_VERSION}/gomplate_${TARGETOS:-linux}-${TARGETARCH:-amd64}${TARGETVARIANT}" \
@@ -49,7 +49,7 @@ RUN chown -R 1001:1001 /var/dex
 run chmod -R 777 /var/dex
 
 RUN mkdir -p /etc/dex
-COPY config.docker.yaml /etc/dex/
+COPY snomed.dex.yaml /etc/dex/config.docker.yaml
 RUN chown -R 1001:1001 /etc/dex
 
 # Copy module files for CVE scanning / dependency analysis.
