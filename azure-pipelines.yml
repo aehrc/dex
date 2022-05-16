@@ -1,0 +1,58 @@
+name: dex-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  - 'feature/family_name'
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  trivyVersion: 0.27.1
+
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
+          - task: Docker@2
+            condition: succeeded()
+            displayName: Build customised Dex Docker image
+            inputs:
+              command: buildAndPush
+              containerRegistry: $(serviceConnection)
+              repository: $(dexRegistryPath)
+              dockerFile: snomed.Dockerfile
+              tags: |
+                $(Build.BuildNumber)
+                latest
+          - script: |
+              sudo apt-get install rpm
+              wget https://github.com/aquasecurity/trivy/releases/download/v$(trivyVersion)/trivy_$(trivyVersion)_Linux-64bit.deb
+              sudo dpkg -i trivy_$(trivyVersion)_Linux-64bit.deb
+              trivy -v
+            displayName: 'Download and install Trivy'
+          - task: CmdLine@2
+            displayName: "Run trivy scan on Dex"
+            inputs:
+              workingDirectory: $(System.DefaultWorkingDirectory)
+              script: |
+                trivy image --exit-code 0 --severity LOW,MEDIUM $(dockerRegistry)/$(dexRegistryPath):$(Build.BuildNumber)
+                trivy image --exit-code 1 --severity HIGH,CRITICAL $(dockerRegistry)/$(dexRegistryPath):$(Build.BuildNumber)
+          - task: Docker@2
+            condition: succeeded()
+            displayName: Push image
+            inputs:
+              containerRegistry: $(serviceConnection)
+              repository: $(registryPath)
+              command: push
+              tags: |
+                $(Build.BuildNumber)
+          - task: Docker@2
+            condition: contains(variables['build.sourceBranch'], 'refs/heads/feature/family_name')
+            displayName: Push image
+            inputs:
+              containerRegistry: $(serviceConnection)
+              repository: $(registryPath)
+              command: push
+              tags: |
+                latest
