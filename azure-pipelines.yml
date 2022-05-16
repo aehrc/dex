@@ -18,7 +18,7 @@ stages:
             condition: succeeded()
             displayName: Build customised Dex Docker image
             inputs:
-              command: buildAndPush
+              command: build
               containerRegistry: $(serviceConnection)
               repository: $(dexRegistryPath)
               dockerFile: snomed.Dockerfile
@@ -43,7 +43,7 @@ stages:
             displayName: Push image
             inputs:
               containerRegistry: $(serviceConnection)
-              repository: $(registryPath)
+              repository: $(dexRegistryPath)
               command: push
               tags: |
                 $(Build.BuildNumber)
@@ -52,7 +52,7 @@ stages:
             displayName: Push image
             inputs:
               containerRegistry: $(serviceConnection)
-              repository: $(registryPath)
+              repository: $(dexRegistryPath)
               command: push
               tags: |
                 latest
