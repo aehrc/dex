@@ -1,6 +1,6 @@
 ARG BASEIMAGE=alpine:3.16.0
 
-FROM golang:1.18.2-alpine3.15 AS builder
+FROM golang:1.18.3-alpine3.15 AS builder
 
 WORKDIR /usr/local/src/dex
 
