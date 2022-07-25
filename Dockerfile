@@ -1,4 +1,4 @@
-ARG BASEIMAGE=alpine:3.16.0
+ARG BASE_IMAGE=alpine
 
 FROM golang:1.18.3-alpine3.15 AS builder
 
@@ -22,13 +22,13 @@ COPY . .
 
 RUN make release-binary
 
-FROM $BASEIMAGE AS stager
+FROM alpine:3.16.1 AS stager
 
 RUN mkdir -p /var/dex
 RUN mkdir -p /etc/dex
 COPY config.docker.yaml /etc/dex/
 
-FROM $BASEIMAGE AS gomplate
+FROM alpine:3.16.1 AS gomplate
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -41,10 +41,10 @@ RUN wget -O /usr/local/bin/gomplate \
     && chmod +x /usr/local/bin/gomplate
 
 # For Dependabot to detect base image versions
-FROM $BASEIMAGE AS alpine
+FROM alpine:3.16.1 AS alpine
 FROM gcr.io/distroless/static:latest AS distroless
 
-FROM $BASEIMAGE
+FROM $BASE_IMAGE
 
 # Dex connectors, such as GitHub and Google logins require root certificates.
 # Proper installations should manage those certificates, but it's a bad user
