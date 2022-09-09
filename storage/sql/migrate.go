@@ -300,4 +300,11 @@ var migrations = []migration{
 				add column obsolete_token text default '';`,
 		},
 	},
+	{
+		stmts: []string{
+			`
+			alter table password
+				add column approval text default '';`,
+		},
+	},
 }
