@@ -287,44 +287,6 @@ func (c *conn) GetAuthCode(id string) (a storage.AuthCode, err error) {
 	return a, nil
 }
 
-func (c *conn) CreateApproval(username string, id string) (bool, error) {
-	var approval string;
-
-	if err := db.QueryRow("select approval from password where username = $1;",
-		username).Scan(&approval); err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("unknown username", username)
-		}
-		return fmt.Errorf("create approval: %v", err)
-	}
-
-	if (!strings.Contains(approval, id)) {
-		approval += id + ","
-	}
-
-	_, err := c.Exec(`
-    		update password set approval = $1 where username = $2;
-    	`,
-		p.Username, approval,
-	)
-}
-
-func (c *conn) GetApproval(username string, id string) error {
-	var approval string
-	if err := db.QueryRow("select approval from password where username = $1;",
-		username).Scan(&approval); err != nil {
-		if err == sql.ErrNoRows {
-			return false, fmt.Errorf("unknown username", username)
-		}
-		return false, fmt.Errorf("create approval: %v", err)
-	}
-
-	if (len(approval) > 0) {
-		return true
-	}
-	return false
-}
-
 func (c *conn) CreateRefresh(r storage.RefreshToken) error {
 	_, err := c.Exec(`
 		insert into refresh_token (
@@ -1054,7 +1016,7 @@ func (c *conn) UpdateDeviceToken(deviceCode string, updater func(old storage.Dev
 		_, err = tx.Exec(`
 			update device_token
 			set
-				status = $1,
+				status = $1, 
 				token = $2,
 				last_request = $3,
 				poll_interval = $4

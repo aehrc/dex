@@ -562,15 +562,9 @@ func (s *Server) handleApproval(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logger.Debugf("Handling approval for authRequest %s", authReq)
 
-	isApproved err := s.storage.GetApproval(authReq.Claims.Username, authReq.ClientID)
-	if err != nil {
-		s.logger.Errorf("Failed to get approval state from database: %v", err)
-		s.renderError(r, w, http.StatusInternalServerError, "Database error.")
-		return
-	}
 	switch r.Method {
 	case http.MethodGet:
-		if s.skipApproval || isApproved {
+		if s.skipApproval {
 			s.sendCodeResponse(w, r, authReq)
 			return
 		}
@@ -588,7 +582,6 @@ func (s *Server) handleApproval(w http.ResponseWriter, r *http.Request) {
 			s.renderError(r, w, http.StatusInternalServerError, "Approval rejected.")
 			return
 		}
-		s.storage.CreateApproval(authReq.Claims.Username, authReq.ClientID)
 		s.sendCodeResponse(w, r, authReq)
 	}
 }
