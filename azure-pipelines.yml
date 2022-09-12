@@ -55,4 +55,4 @@ stages:
               repository: $(dexRegistryPath)
               command: push
               tags: |
-                latest
+                grant_access
