@@ -1,2 +1,8 @@
 # Accept the risk for DEX
 CVE-2022-27191
+
+# https://github.com/dexidp/dex/issues/2647
+CVE-2022-37434
+
+# https://github.com/dexidp/dex/issues/2545
+CVE-2021-44716
