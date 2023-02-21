@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -504,7 +505,15 @@ func (s *Server) finalizeLogin(identity connector.Identity, authReq storage.Auth
 	s.logger.Infof("login successful: connector %q, username=%q, preferred_username=%q, email=%q, groups=%q, family_name=%q, given_name=%q",
 		authReq.ConnectorID, claims.Username, claims.PreferredUsername, email, claims.Groups, claims.FamilyName, claims.GivenName)
 
-	returnURL := path.Join(s.issuerURL.Path, "/approval") + "?req=" + authReq.ID
+	// TODO: if s.skipApproval or !authReq.ForceApprovalPrompt, we can skip the redirect to /approval and go ahead and send code
+
+	// an HMAC is used here to ensure that the request ID is unpredictable, ensuring that an attacker who intercepted the original
+	// flow would be unable to poll for the result at the /approval endpoint
+	h := hmac.New(sha256.New, authReq.HMACKey)
+	h.Write([]byte(authReq.ID))
+	mac := h.Sum(nil)
+
+	returnURL := path.Join(s.issuerURL.Path, "/approval") + "?req=" + authReq.ID + "&hmac=" + base64.RawURLEncoding.EncodeToString(mac)
 	_, ok := conn.(connector.RefreshConnector)
 	if !ok {
 		return returnURL, nil
@@ -549,6 +558,17 @@ func (s *Server) finalizeLogin(identity connector.Identity, authReq storage.Auth
 }
 
 func (s *Server) handleApproval(w http.ResponseWriter, r *http.Request) {
+	macEncoded := r.FormValue("hmac")
+	if macEncoded == "" {
+		s.renderError(r, w, http.StatusUnauthorized, "Unauthorized request")
+		return
+	}
+	mac, err := base64.RawURLEncoding.DecodeString(macEncoded)
+	if err != nil {
+		s.renderError(r, w, http.StatusUnauthorized, "Unauthorized request")
+		return
+	}
+
 	authReq, err := s.storage.GetAuthRequest(r.FormValue("req"))
 	if err != nil {
 		s.logger.Errorf("Failed to get auth request: %v", err)
@@ -561,6 +581,16 @@ func (s *Server) handleApproval(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logger.Debugf("Handling approval for authRequest %s", authReq)
+
+	// build expected hmac with secret key
+	h := hmac.New(sha256.New, authReq.HMACKey)
+	h.Write([]byte(authReq.ID))
+	expectedMAC := h.Sum(nil)
+	// constant time comparison
+	if !hmac.Equal(mac, expectedMAC) {
+		s.renderError(r, w, http.StatusUnauthorized, "Unauthorized request")
+		return
+	}
 
 	switch r.Method {
 	case http.MethodGet:
