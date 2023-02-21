@@ -13,6 +13,9 @@ storage:
     ssl:
       mode: "false"
 
+oauth2:
+   skipApprovalScreen: true
+
 web:
   http: 0.0.0.0:5556
 staticClients:
